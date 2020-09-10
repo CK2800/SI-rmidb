@@ -97,11 +97,12 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
             Connection con=DriverManager.getConnection(url, user, password);
 
             for(Customer customer : customers) {
-                PreparedStatement ps = con.prepareStatement("INSERT INTO Customer(accnum, name, amount) VALUES (?,?,?)");
+                //PreparedStatement ps = con.prepareStatement("INSERT INTO Customer(accnum, name, amount) VALUES (?,?,?)");
+                PreparedStatement ps = con.prepareStatement("INSERT INTO Customer(name, amount) VALUES (?,?)");
 
-                ps.setLong(1, customer.getAccnum());
-                ps.setString(2, customer.getName());
-                ps.setDouble(3, customer.getAmount());
+                //ps.setLong(1, customer.getAccnum());
+                ps.setString(1, customer.getName());
+                ps.setDouble(2, customer.getAmount());
                 ps.executeUpdate();
             }
             con.close();

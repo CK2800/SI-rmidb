@@ -1,8 +1,8 @@
-[{"accnum": 5677, "name": "Anders And", "amount": 565660.65},{"accnum": 5678, "name": "Anders BAnd", "amount": 565661.65},
-{"accnum": 5679, "name": "Anders CAnd", "amount": 565662.65},
-{"accnum": 5680, "name": "Anders DAnd", "amount": 565663.65},
-{"accnum": 5681, "name": "Anders EAnd", "amount": 565664.65},
-{"accnum": 5682, "name": "Anders FAnd", "amount": 565665.65},
-{"accnum": 5683, "name": "Anders GAnd", "amount": 565666.65},
+[{"name": "Anders And", "amount": 565660.65},{"name": "Anders BAnd", "amount": 565661.65},
+{"name": "Anders CAnd", "amount": 565662.65},
+{"name": "Anders DAnd", "amount": 565663.65},
+{"name": "Anders EAnd", "amount": 565664.65},
+{"name": "Anders FAnd", "amount": 565665.65},
+{"name": "Anders GAnd", "amount": 565666.65},
 
-{"accnum": 5684, "name": "Anders HAnd", "amount": 565667.65}]
+{"name": "Anders HAnd", "amount": 565667.65}]
