@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Customers>
+    <Customer>
+        <name>Mads 1</name>
+        <amount>4567876.56</amount>
+    </Customer>
+    <Customer>
+        <name>Claus 1</name>
+        <amount>1563876.56</amount>
+    </Customer>
+    <Customer>
+        <name>Mads 2</name>
+        <amount>4876.56</amount>
+    </Customer>
+    <Customer>
+        <name>Claus 2</name>
+        <amount>876.53</amount>
+    </Customer>
+</Customers>

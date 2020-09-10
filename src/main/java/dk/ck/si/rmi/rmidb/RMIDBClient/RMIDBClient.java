@@ -24,7 +24,7 @@ public class RMIDBClient
         BankInterface obj = (BankInterface) Naming.lookup(remoteEngine);
 
         System.out.println(obj.getTotalCustomers() + " customers in bank.");
-        System.out.println("Customers added: " + obj.addJsonCustomers(new File("./src/main/resources/jsonCustomers.txt")));
+        System.out.println("Customers added: " + obj.addJsonCustomers(new File("./src/main/resources/customers.json")));
         System.out.println(obj.getTotalCustomers() + " customers in bank.");
 
         //obj.addJsonCustomer("{\"accnum\": 5677, \"name\": \"Anders And\", \"amount\": 565660.65}");

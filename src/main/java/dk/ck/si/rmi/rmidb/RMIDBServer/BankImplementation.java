@@ -42,6 +42,12 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         return String.format("Hello %s!", name);
     }
 
+    public int addXmlCustomers(File xmlFile) throws RemoteException
+    {
+        // TBD
+        return 0;
+    }
+
     public int addJsonCustomers(File jsonFile) throws RemoteException
     {
         try
@@ -53,9 +59,10 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
             while((customer = bufferedReader.readLine()) != null)
                 customers.append(customer);
 
+            bufferedReader.close();
+            fileReader.close();
+
             return addJsonCustomer(customers.toString());
-                /*if (addJsonCustomer(customer) != null)
-                    addedCustomers++;*/
         }
         catch(Exception e)
         {
