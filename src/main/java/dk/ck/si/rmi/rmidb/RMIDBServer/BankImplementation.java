@@ -5,17 +5,20 @@ package dk.ck.si.rmi.rmidb.RMIDBServer;
  *
  * @author Dora Di
  */
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.boot.json.GsonJsonParser;
-import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.xml.sax.InputSource;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import java.beans.XMLDecoder;
+import java.io.*;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
@@ -42,33 +45,111 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         return String.format("Hello %s!", name);
     }
 
+
     public int addXmlCustomers(File xmlFile) throws RemoteException
     {
-        // TBD
-        return 0;
+        /* PSEUDO
+        1. Read file and collect it as a string.
+        2. Parse the string with json mapper and get list of customers.
+        3. send list of customers to method to persist them.
+        4. return how many was persisted.
+         */
+        int result = 0;
+        Connection connection = null;
+        try
+        {
+            //String content = parseFileToString(xmlFile);
+            List<Customer> customers = mapXmlCustomers(xmlFile);
+            Class.forName(driver);
+            connection = DriverManager.getConnection(url, user, password);
+            result = storeCustomers(customers, connection);
+        }
+        catch(Exception e)
+        {
+            System.out.println("XML customers not stored. " + e.getMessage());
+        }
+        finally
+        {
+            try
+            {
+                connection.close();
+            }
+            catch(Exception e)
+            {
+                if (connection == null)
+                    System.out.println("Connection was never established.");
+                else
+                    System.out.println("Connection was not closed.");
+            }
+        }
+        return result;
     }
 
     public int addJsonCustomers(File jsonFile) throws RemoteException
     {
-        try
-        {
-            StringBuilder customers = new StringBuilder();
-            FileReader fileReader = new FileReader(jsonFile);
-            BufferedReader bufferedReader = new BufferedReader(fileReader);
-            String customer;
-            while((customer = bufferedReader.readLine()) != null)
-                customers.append(customer);
-
-            bufferedReader.close();
-            fileReader.close();
-
-            return addJsonCustomer(customers.toString());
+        /* PSEUDO
+        1. Read file and collect it as a string.
+        2. Parse the string with json mapper and get list of customers.
+        3. send list of customers to method to persist them.
+        4. return how many was persisted.
+         */
+        int result = 0;
+        Connection connection = null;
+        try {
+            String content = parseFileToString(jsonFile);
+            List<Customer> customers = mapJsonCustomers(content);
+            Class.forName(driver);
+            connection = DriverManager.getConnection(url, user, password);
+            result = storeCustomers(customers, connection);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-            System.out.println("File could not be read: " + e.getMessage());
+            System.out.println("JSON customers not stored. " + e.getMessage());
         }
-        return 0;
+        finally
+        {
+            try
+            {
+                connection.close();
+            }
+            catch(Exception e)
+            {
+                if (connection == null)
+                    System.out.println("Connection was never established.");
+                else
+                    System.out.println("Connection was not closed.");
+            }
+        }
+        return result;
+    }
+
+    private String parseFileToString(File file) throws FileNotFoundException, IOException
+    {
+        StringBuilder content = new StringBuilder();
+        FileReader fileReader = new FileReader(file);
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        String line;
+        while((line = bufferedReader.readLine()) != null)
+            content.append(line);
+
+        return content.toString();
+    }
+
+    private List<Customer> mapXmlCustomers(File xmlFile) throws JAXBException
+    {
+        JAXBContext context = JAXBContext.newInstance(Customer.class);
+        Unmarshaller unmarshaller = context.createUnmarshaller();
+        Customer[] customers = ((Customer[]) unmarshaller.unmarshal(xmlFile));
+        return Arrays.asList(customers);
+
+    }
+
+
+    private List<Customer> mapJsonCustomers(String json) throws JsonProcessingException
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        List<Customer> customers = new ArrayList<Customer>();
+        return Arrays.asList(mapper.readValue(json, Customer[].class));
     }
 
     public int getTotalCustomers() throws RemoteException
@@ -93,33 +174,26 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         return 0;
     }
 
-    private int addJsonCustomer(String json) throws RemoteException
+    private int storeCustomers(List<Customer> customers, Connection connection)
     {
-        ObjectMapper mapper = new ObjectMapper();
-        List<Customer> customers = new ArrayList<Customer>();
-        try
+        int count = 0;
+        for(Customer customer : customers)
         {
-            customers = Arrays.asList(mapper.readValue(json, Customer[].class));
-            Class.forName(driver);
-            Connection con=DriverManager.getConnection(url, user, password);
-
-            for(Customer customer : customers) {
-                //PreparedStatement ps = con.prepareStatement("INSERT INTO Customer(accnum, name, amount) VALUES (?,?,?)");
-                PreparedStatement ps = con.prepareStatement("INSERT INTO Customer(name, amount) VALUES (?,?)");
-
-                //ps.setLong(1, customer.getAccnum());
-                ps.setString(1, customer.getName());
-                ps.setDouble(2, customer.getAmount());
-                ps.executeUpdate();
+            try
+            {
+                count++;
+                PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO Customer(name, amount) VALUES (?,?)");
+                preparedStatement.setString(1, customer.getName());
+                preparedStatement.setDouble(2, customer.getAmount());
+                preparedStatement.executeUpdate();
             }
-            con.close();
-
+            catch(Exception e)
+            {
+                count--;
+                System.out.println("Unable to add customer: " + customer.toString() + ", " + e.getMessage());
+            }
         }
-        catch(Exception e)
-        {
-            System.out.println("Mapping failed: " + e.getMessage());
-        }
-        return customers.size();
+        return count;
     }
 
     @GetMapping("/bank")
