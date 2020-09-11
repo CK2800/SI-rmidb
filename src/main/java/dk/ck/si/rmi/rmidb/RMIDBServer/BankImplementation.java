@@ -8,6 +8,10 @@ package dk.ck.si.rmi.rmidb.RMIDBServer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.opencsv.CSVReader;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.DomDriver;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +21,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
 import java.beans.XMLDecoder;
 import java.io.*;
 import java.rmi.RemoteException;
@@ -45,8 +50,67 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         return String.format("Hello %s!", name);
     }
 
+    @GetMapping("/bank")
+    public List<Customer> getMillionaires()
+    {
 
-    public int addXmlCustomers(File xmlFile) throws RemoteException
+        List<Customer> list=new ArrayList<Customer>();
+        Connection con = null;
+        try
+        {
+            Class.forName(driver);
+            con = DriverManager.getConnection(url, user, password);
+            PreparedStatement ps=con.prepareStatement("select * from Customer where amount >= 100000;");
+            ResultSet rs=ps.executeQuery();
+            while(rs.next())
+            {
+                Customer c=new Customer();
+                c.setAccnum(rs.getLong(1));
+                c.setName(rs.getString(2));
+                c.setAmount(rs.getDouble(3));
+                System.out.println(c);
+                list.add(c);
+            }
+        }
+        catch(Exception e)
+        {
+            System.out.println(e);
+        }
+        finally
+        {
+            close(con);
+        }
+
+        return list;
+    }
+
+    public int addCustomers(File file) throws RemoteException, Exception
+    {
+        switch(getExtension(file.getName()))
+        {
+            case ".xml":
+                return addXmlCustomers(file);
+
+            case ".csv":
+                return addCsvCustomers(file);
+
+            case ".json":
+                return addJsonCustomers(file);
+
+            default:
+                throw new Exception("File format not supported!");
+
+        }
+    }
+
+    private String getExtension(String filename)
+    {
+        int lastIndex = filename.lastIndexOf(".");
+        return lastIndex == -1 ? "" : filename.substring(lastIndex);
+    }
+
+
+    private int addXmlCustomers(File xmlFile) throws RemoteException
     {
         /* PSEUDO
         1. Read file and collect it as a string.
@@ -70,22 +134,48 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         }
         finally
         {
-            try
-            {
-                connection.close();
-            }
-            catch(Exception e)
-            {
-                if (connection == null)
-                    System.out.println("Connection was never established.");
-                else
-                    System.out.println("Connection was not closed.");
-            }
+            close(connection);
         }
+
         return result;
     }
 
-    public int addJsonCustomers(File jsonFile) throws RemoteException
+    private int addCsvCustomers(File csvFile)
+    {
+        int result = 0;
+        List<Customer> customers = new ArrayList<>();
+        Connection connection = null;
+        Customer c = null;
+        try (
+                FileReader fileReader = new FileReader(csvFile);
+                BufferedReader bufferedReader = new BufferedReader(fileReader);
+                CSVReader csvReader = new CSVReader(bufferedReader);
+        )
+        {
+            List<String[]> records = csvReader.readAll();
+            for (String[] record : records) {
+                c = new Customer();
+                c.setName(record[0]);
+                c.setAmount(Double.valueOf(record[1]));
+                customers.add(c);
+            }
+            Class.forName(driver);
+            connection = DriverManager.getConnection(url, user, password);
+            result = storeCustomers(customers, connection);
+        }
+        catch (Exception e)
+        {
+            System.out.println("CSV customers not stored. " + e.getMessage());
+        }
+        finally
+        {
+            close(connection);
+        }
+
+        return result;
+    }
+
+    private int addJsonCustomers(File jsonFile) throws RemoteException
     {
         /* PSEUDO
         1. Read file and collect it as a string.
@@ -108,20 +198,26 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         }
         finally
         {
-            try
-            {
-                connection.close();
-            }
-            catch(Exception e)
-            {
-                if (connection == null)
-                    System.out.println("Connection was never established.");
-                else
-                    System.out.println("Connection was not closed.");
-            }
+            close(connection);
         }
         return result;
     }
+
+    private void close(Connection connection)
+    {
+        try
+        {
+            connection.close();
+        }
+        catch(Exception e)
+        {
+            if (connection == null)
+                System.out.println("Connection was never established.");
+            else
+                System.out.println("Connection was not closed.");
+        }
+    }
+
 
     private String parseFileToString(File file) throws FileNotFoundException, IOException
     {
@@ -135,20 +231,17 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         return content.toString();
     }
 
-    private List<Customer> mapXmlCustomers(File xmlFile) throws JAXBException
-    {
-        JAXBContext context = JAXBContext.newInstance(Customer.class);
-        Unmarshaller unmarshaller = context.createUnmarshaller();
-        Customer[] customers = ((Customer[]) unmarshaller.unmarshal(xmlFile));
-        return Arrays.asList(customers);
-
+    // TBD
+    private List<Customer> mapXmlCustomers(File xmlFile) throws IOException
+    {/
+        XmlMapper xmlMapper = new XmlMapper();
+        Customers customers = xmlMapper.readValue(xmlFile, Customers.class);
+        return customers.customers;
     }
-
 
     private List<Customer> mapJsonCustomers(String json) throws JsonProcessingException
     {
         ObjectMapper mapper = new ObjectMapper();
-        List<Customer> customers = new ArrayList<Customer>();
         return Arrays.asList(mapper.readValue(json, Customer[].class));
     }
 
@@ -196,34 +289,7 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
         return count;
     }
 
-    @GetMapping("/bank")
-    public List<Customer> getMillionaires()
-    {
 
-        List<Customer> list=new ArrayList<Customer>();
-        try
-        {
-            Class.forName(driver);
-            Connection con=DriverManager.getConnection(url, user, password);
-            PreparedStatement ps=con.prepareStatement("select * from Customer where amount >= 100000;");
-            ResultSet rs=ps.executeQuery();
-            while(rs.next())
-            {
-                Customer c=new Customer();
-                c.setAccnum(rs.getLong(1));
-                c.setName(rs.getString(2));
-                c.setAmount(rs.getDouble(3));
-                System.out.println(c);
-                list.add(c);
-            }
-            con.close();
-        }
-        catch(Exception e)
-        {
-            System.out.println(e);
-        }
-        return list;
-    }
 }  
 
 
