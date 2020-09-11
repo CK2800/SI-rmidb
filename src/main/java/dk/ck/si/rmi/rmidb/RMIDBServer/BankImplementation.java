@@ -233,7 +233,7 @@ public class BankImplementation extends UnicastRemoteObject implements BankInter
 
     // TBD
     private List<Customer> mapXmlCustomers(File xmlFile) throws IOException
-    {/
+    {
         XmlMapper xmlMapper = new XmlMapper();
         Customers customers = xmlMapper.readValue(xmlFile, Customers.class);
         return customers.customers;
