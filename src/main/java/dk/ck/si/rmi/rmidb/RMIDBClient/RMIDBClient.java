@@ -27,7 +27,7 @@ public class RMIDBClient
         System.out.println(obj.getTotalCustomers() + " customers in bank.");
         System.out.println("XML Customers added: " + obj.addCustomers(new File("./src/main/resources/customers.xml")));
         System.out.println(obj.getTotalCustomers() + " customers in bank.");
-        System.out.println("JSON Customers added: " + obj.addCustomers(new File("./src/main/resources/customers.csv")));
+        System.out.println("CSV Customers added: " + obj.addCustomers(new File("./src/main/resources/customers.csv")));
 
 
         /*List<Customer> list=obj.getMillionaires();
