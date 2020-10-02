@@ -12,7 +12,7 @@ This way, each service can be used by other clients. Each client may use a servi
 
 Thus every service can be seen as a logical unit from the client's perspective. The providers of these services are then able to further evolve these irrespective of the evolution of other services, as they are not reliant on each other.
 
-This is a high level principle of SoC. How the client may choose to combine the services is of no interest each individual service. They just need the client to fulfill a contract, much like a client must give a method the right parameters according to it's signature.
+This is a high level principle of SoC. How the client may choose to combine the services is of no interest to each individual service. They just need the client to fulfill a contract, much like a client must give a method the right parameters according to it's signature.
 
 &nbsp;
 
